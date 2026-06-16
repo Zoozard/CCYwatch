@@ -1,0 +1,50 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мониторинг курсов валют ЦБ РФ</title>
+    <link rel="stylesheet" href="{% static 'rates/css/bootstrap.min.css' %}">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Курсы валют ЦБ РФ</h1>
+            <span class="badge bg-secondary p-2">Данные на: {{ latest_date|date:"d.m.Y" }}</span>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Код</th>
+                            <th>Валюта</th>
+                            <th>Номинал</th>
+                            <th>Курс к рублю</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in rates %}
+                        <tr>
+                            <td><strong>{{ item.currency.char_code }}</strong></td>
+                            <td>{{ item.currency.name }}</td>
+                            <td>{{ item.currency.nominal }}</td>
+                            <td>{{ item.rate }} ₽</td>
+                            <td>
+                                <a href="{% url 'rates:currency_analytics' item.currency.char_code %}" class="btn btn-primary btn-sm">Аналитика</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Данные за сегодня еще не загружены.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
