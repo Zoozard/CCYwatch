@@ -5,6 +5,9 @@ from .models import Currency, ExchangeRate
 
 def currency_dashboard(request):
     """Главная страница: список всех валют с их последними курсами"""
+    # Автоматически проверяем и докачиваем курсы при каждом просмотре главной страницы
+    ensure_actual_rates()
+
     # Получаем самую последнюю дату, за которую у нас есть курсы в БД
     latest_rate = ExchangeRate.objects.order_by('-date_checked').first()
     
