@@ -3,17 +3,21 @@ from django.http import Http404
 import pandas as pd
 from .models import Currency, ExchangeRate
 
-from .services import ensure_actual_rates 
+from .services import ensure_actual_rates, check_watchlist_alerts 
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from .models import Watchlist
+from decimal import Decimal
 
 def currency_dashboard(request):
     """Главная страница: список всех валют с их последними курсами"""
     # Автоматически проверяем и докачиваем курсы при каждом просмотре главной страницы
     ensure_actual_rates()
+
+    # Проверяем подписки именно этого пользователя перед рендером
+    check_watchlist_alerts(request)
 
     # Получаем самую последнюю дату, за которую у нас есть курсы в БД
     latest_rate = ExchangeRate.objects.order_by('-date_checked').first()
@@ -62,12 +66,18 @@ def currency_analytics(request, char_code):
     # Подготавливаем списки данных для передачи в JavaScript-график на веб-странице
     chart_labels = df['date_checked'].dt.strftime('%d.%m.%Y').tolist()
     chart_values = df['rate'].tolist()
+    
+    # Проверяем, есть ли уже цель у этого пользователя
+    user_watchlist = None
+    if request.user.is_authenticated:
+        user_watchlist = Watchlist.objects.filter(user=request.user, currency=currency, is_notified=False).first()
 
     context = {
         'currency': currency,
         'stats': stats,
         'chart_labels': chart_labels,
         'chart_values': chart_values,
+        'user_watchlist': user_watchlist,
     }
     return render(request, 'rates/analytics.html', context)
 
@@ -106,12 +116,25 @@ def add_to_watchlist(request, char_code):
     currency = get_object_or_404(Currency, char_code=char_code.upper())
     
     if request.method == 'POST':
-        target_rate = request.POST.get('target_rate')
-        if target_rate:
+        target_rate_str = request.POST.get('target_rate')
+        if target_rate_str:
+            target_rate = Decimal(target_rate_str)
+            # Если число меньше или равно нулю, просто игнорируем запрос
+            if target_rate <= 0:
+                return redirect('rates:currency_analytics', char_code=char_code)
+            
             # Создаем или обновляем подписку пользователя
             Watchlist.objects.update_or_create(
                 user=request.user,
                 currency=currency,
                 defaults={'target_rate': target_rate, 'is_notified': False}
             )
+    return redirect('rates:currency_analytics', char_code=char_code)
+
+# Функция удаления цели
+@login_required
+def remove_from_watchlist(request, char_code):
+    """Удаление валюты из списка отслеживания пользователя"""
+    currency = get_object_or_404(Currency, char_code=char_code.upper())
+    Watchlist.objects.filter(user=request.user, currency=currency).delete()
     return redirect('rates:currency_analytics', char_code=char_code)

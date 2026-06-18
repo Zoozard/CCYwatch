@@ -5,7 +5,8 @@ from decimal import Decimal
 import requests
 from lxml import etree
 
-from .models import Currency, ExchangeRate
+from .models import Currency, ExchangeRate, Watchlist
+from django.contrib import messages
 
 CBR_URL = "https://www.cbr.ru/scripts/XML_daily.asp"
 
@@ -109,7 +110,7 @@ def fetch_historical_rates(days_back):
 
 def ensure_actual_rates():
     """
-    Проверяет наличие курсов на текущую дату.
+    Проверяет наличие курсов на текущую дату и запускает алерты.
 
     Если курсы отсутствуют, автоматически загружает их
     с сайта Центрального банка РФ.
@@ -120,3 +121,50 @@ def ensure_actual_rates():
         return
 
     fetch_historical_rates(days_back=1)
+
+    check_watchlist_alerts()
+
+def check_watchlist_alerts(request):
+    """
+    Проверяет активные подписки ТОЛЬКО для текущего авторизованного пользователя
+    и выводит ему уведомление на экран через django.contrib.messages.
+    """
+    if not request.user.is_authenticated:
+        return
+
+    # Ищем подписки текущего пользователя, которые еще не выстрелили
+    active_alerts = Watchlist.objects.filter(
+        user=request.user, 
+        is_notified=False
+    ).select_related('currency')
+    
+    latest_rate_obj = ExchangeRate.objects.order_by('-date_checked').first()
+    if not latest_rate_obj:
+        return
+    
+    latest_date = latest_rate_obj.date_checked
+
+    for alert in active_alerts:
+        current_rate_obj = ExchangeRate.objects.filter(
+            currency=alert.currency, 
+            date_checked=latest_date
+        ).first()
+        
+        if not current_rate_obj:
+            continue
+            
+        current_rate = current_rate_obj.rate
+        target_rate = alert.target_rate
+
+        # Условие: курс стал ниже или равен целевому
+        if current_rate <= target_rate:
+            # Создаем красивое уведомление, которое Django покажет на экране
+            messages.success(
+                request,
+                f"🎯 Сигнал по валюте {alert.currency.char_code} ({alert.currency.name})! "
+                f"Курс достиг вашей цели: {current_rate} ₽ (Вы ставили: {target_rate} ₽)."
+            )
+            
+            # Помечаем в БД, что уведомление сработало
+            alert.is_notified = True
+            alert.save()

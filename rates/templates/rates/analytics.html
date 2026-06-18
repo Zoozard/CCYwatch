@@ -56,18 +56,32 @@
             </div>
             <div class="card-body">
                 {% if user.is_authenticated %}
+                {% if user_watchlist %}
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fs-5">Вы отслеживаете этот курс. Целевое значение: <strong>{{ user_watchlist.target_rate }} ₽</strong></span>
+                        {% if user_watchlist.is_notified %}
+                        <span class="badge bg-success ms-2">Уведомление отправлено</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark ms-2">В ожидании</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'rates:remove_from_watchlist' currency.char_code %}" class="btn btn-danger btn-sm">Удалить цель</a>
+                </div>
+                {% else %}
                 <form method="post" action="{% url 'rates:add_to_watchlist' currency.char_code %}" class="row g-3 align-items-center">
                     {% csrf_token %}
                     <div class="col-auto">
                         <label class="col-form-label">Уведомить меня, когда курс достигнет:</label>
                     </div>
                     <div class="col-auto">
-                        <input type="number" step="0.0001" name="target_rate" class="form-control" placeholder="Например: 85.50" required>
+                        <input type="number" step="0.0001" min="0.0001" name="target_rate" class="form-control" placeholder="Например: 67.67" required>
                     </div>
                     <div class="col-auto">
                         <button type="submit" class="btn btn-success">Установить цель</button>
                     </div>
                 </form>
+                {% endif %}
                 {% else %}
                 <p class="text-muted mb-0">Чтобы настраивать уведомления и отслеживать этот курс, пожалуйста, <a href="{% url 'rates:login' %}">войдите в аккаунт</a>.</p>
                 {% endif %}
