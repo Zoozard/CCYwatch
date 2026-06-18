@@ -1,15 +1,12 @@
-﻿from django.shortcuts import render, get_object_or_404
+﻿from django.shortcuts import render, get_object_or_404, redirect
 from django.http import Http404
-import pandas as pd
-from .models import Currency, ExchangeRate
-
-from .services import ensure_actual_rates, check_watchlist_alerts 
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
-from .models import Watchlist
 from decimal import Decimal
+from .models import Currency, ExchangeRate, Watchlist
+from .services import ensure_actual_rates, check_watchlist_alerts 
+import pandas as pd
 
 def currency_dashboard(request):
     """Главная страница: список всех валют с их последними курсами"""

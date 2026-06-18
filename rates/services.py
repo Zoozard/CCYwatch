@@ -158,7 +158,6 @@ def check_watchlist_alerts(request):
 
         # Условие: курс стал ниже или равен целевому
         if current_rate <= target_rate:
-            # Создаем красивое уведомление, которое Django покажет на экране
             messages.success(
                 request,
                 f"🎯 Сигнал по валюте {alert.currency.char_code} ({alert.currency.name})! "
