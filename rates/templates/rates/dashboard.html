@@ -8,6 +8,16 @@
 </head>
 <body class="bg-light">
     <div class="container mt-5">
+        <div class="d-flex justify-content-end mb-3 gap-2">
+            {% if user.is_authenticated %}
+            <span class="navbar-text me-2">Вы вошли как: <strong>{{ user.username }}</strong></span>
+            <a href="{% url 'rates:logout' %}" class="btn btn-sm btn-outline-danger">Выйти</a>
+            {% else %}
+            <a href="{% url 'rates:login' %}" class="btn btn-sm btn-outline-primary">Войти</a>
+            <a href="{% url 'rates:register' %}" class="btn btn-sm btn-primary">Регистрация</a>
+            {% endif %}
+        </div>
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Курсы валют ЦБ РФ</h1>
             <span class="badge bg-secondary p-2">Данные на: {{ latest_date|date:"d.m.Y" }}</span>
