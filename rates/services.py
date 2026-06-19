@@ -122,8 +122,6 @@ def ensure_actual_rates():
 
     fetch_historical_rates(days_back=1)
 
-    check_watchlist_alerts()
-
 def check_watchlist_alerts(request):
     """
     Проверяет активные подписки ТОЛЬКО для текущего авторизованного пользователя
